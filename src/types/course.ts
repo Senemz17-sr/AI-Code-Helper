@@ -4,6 +4,8 @@ export type Level = "beginner" | "intermediate" | "advanced";
 export type Language = "javascript" | "python" | "c" | "cpp";
 export type QuestionType = "mcq" | "coding";
 export type Tier = "free" | "premium" | "advanced";
+export type UserRole = "free" | "premium";
+export type UserTier = "student" | "instructor" | "admin";
 
 export interface Course {
   id: string;
@@ -130,4 +132,57 @@ export interface AIMessage {
   content: string;
   lessonContext?: string;
   timestamp: string;
+}
+
+// ============= USER & ENROLLMENT TYPES =============
+
+export interface CourseUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole; // "free" | "premium"
+  tier: UserTier; // "student" | "instructor" | "admin"
+  enrolledCourses: string[]; // Course IDs
+  completedLessons: string[]; // Lesson IDs
+  completedCourses: string[]; // Course IDs
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LessonProgress {
+  lessonId: string;
+  courseId: string;
+  isCompleted: boolean;
+  completedAt?: string;
+  score?: number;
+  attempts?: number;
+}
+
+export interface CourseProgress {
+  courseId: string;
+  enrolledAt: string;
+  progress: number; // 0-100
+  lastAccessedAt?: string;
+  isCompleted: boolean;
+  completedAt?: string;
+  lessonsCompleted: number;
+  totalLessons: number;
+}
+
+export interface EnhancedCourse extends Course {
+  lessons: EnhancedLesson[];
+}
+
+export interface EnhancedLesson extends Lesson {
+  isLocked: boolean;
+  resources?: Resource[];
+  duration?: number; // in minutes
+}
+
+export interface Resource {
+  id: string;
+  title: string;
+  url: string;
+  type: "link" | "file" | "video";
+  icon?: string;
 }
