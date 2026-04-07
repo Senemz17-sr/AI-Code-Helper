@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpen, Zap } from "lucide-react";
+import GuestBanner from "@/components/GuestBanner";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Language, Level } from "@/types/course";
 
 const LANGUAGE_NAMES: Record<Language, string> = {
@@ -23,6 +25,7 @@ const LEVEL_COLORS: Record<Level, string> = {
 
 export default function CoursesPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<Language | "all">("all");
+  const { isAuthenticated } = useAuth();
 
   const filteredCourses = COURSES.filter((course) =>
     selectedLanguage === "all" ? true : course.language === selectedLanguage
@@ -31,6 +34,9 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="container px-4 py-12">
+        {/* Guest Banner */}
+        {!isAuthenticated && <GuestBanner />}
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

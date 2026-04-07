@@ -3,6 +3,7 @@
 export type Level = "beginner" | "intermediate" | "advanced";
 export type Language = "javascript" | "python" | "c" | "cpp";
 export type QuestionType = "mcq" | "coding";
+export type Tier = "free" | "premium" | "advanced";
 
 export interface Course {
   id: string;
@@ -11,10 +12,18 @@ export interface Course {
   language: Language;
   level: Level;
   chapters: number;
-  duration: string; // e.g. "4 weeks"
+  duration: string;
   icon?: string;
   color?: string;
   enabled: boolean;
+  tier: Tier;
+  price?: number;
+  originalPrice?: number;
+  thumbnail?: string;
+  instructor?: string;
+  rating?: number;
+  enrolledCount?: number;
+  isPremiumPreview?: boolean; // Show first lesson free for paid
 }
 
 export interface Lesson {
@@ -23,12 +32,14 @@ export interface Lesson {
   chapter: number;
   title: string;
   description: string;
-  content: string; // HTML or Markdown
+  content: string;
   explanation: string;
   codeExamples: CodeExample[];
   practiceProblems: PracticeProblem[];
   difficulty: Level;
   video?: string;
+  isPremium?: boolean;
+  order?: number;
 }
 
 export interface CodeExample {
@@ -78,6 +89,29 @@ export interface UserProgress {
   quizPassed: boolean;
   score: number;
   completedAt?: string;
+}
+
+export interface UserEnrollment {
+  userId: string;
+  courseId: string;
+  enrolledAt: string;
+  isPaid: boolean;
+  accessExpires?: string;
+}
+
+export interface UserBookmark {
+  userId: string;
+  lessonId: string;
+  bookmarkedAt: string;
+}
+
+export interface UserCertificate {
+  id: string;
+  userId: string;
+  courseId: string;
+  courseTitle: string;
+  issuedDate: string;
+  certificateUrl?: string;
 }
 
 export interface UserProfile {

@@ -1,40 +1,36 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { getLessonById, getLessonsByCourse, getCourseById } from "@/data/courses";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ChevronLeft,
   ChevronRight,
-  FileText,
+  Book,
   Code2,
-  RotateCcw,
-  Play,
-  Zap,
-  Lock,
+  CheckCircle2,
+  MessageSquare,
+  FileText,
 } from "lucide-react";
+import { getLessonById, getLessonsByCourse, getCourseById } from "@/data/courses";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import CodeEditor from "@/components/CodeEditor";
 import ResponsePanel from "@/components/ResponsePanel";
 import AIAssistantPanel from "@/components/AIAssistantPanel";
 import GuestBanner from "@/components/GuestBanner";
+import BookmarkButton from "@/components/BookmarkButton";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { markLessonComplete, getLessonProgress } from "@/lib/storage";
 
-export default function LessonPage() {
+export default function LessonPageV2() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const lesson = lessonId ? getLessonById(lessonId) : undefined;
   const course = lesson ? getCourseById(lesson.courseId) : undefined;
   const lessons = lesson ? getLessonsByCourse(lesson.courseId) : [];
   const { dark } = useTheme();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<"lesson" | "practice">("lesson");
   const [code, setCode] = useState<string>(
@@ -43,6 +39,9 @@ export default function LessonPage() {
   const [output, setOutput] = useState<string>("");
   const [isRunning, setIsRunning] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(
+    user && lesson ? getLessonProgress(user.id, lesson.id) : false
+  );
   const responseRef = useRef<HTMLDivElement>(null);
 
   if (!lesson || !course) {
@@ -105,71 +104,81 @@ export default function LessonPage() {
     }
   };
 
+  const handleMarkComplete = () => {
+    if (!user) return;
+    markLessonComplete(user.id, lesson.id);
+    setIsCompleted(true);
+  };
+
   const handleReset = () => {
-    setCode(
-      lesson.practiceProblems[0]?.template ||
-        `// Reset your code here`
-    );
+    setCode(lesson.practiceProblems[0]?.template || "");
     setOutput("");
   };
 
+  // Calculate course progress
+  const completedCount = lessons.filter(
+    (l) => user && getLessonProgress(user.id, l.id)
+  ).length;
+  const progressPercentage = Math.round((completedCount / lessons.length) * 100);
+
   return (
     <div className={`min-h-screen ${dark ? "bg-slate-950" : "bg-gray-50"}`}>
-      {/* Guest Banner */}
-      {!isAuthenticated && (
-        <div className="border-b border-border">
-          <div className="container px-4 py-3">
-            <GuestBanner />
-          </div>
-        </div>
-      )}
+      {!isAuthenticated && <GuestBanner />}
 
-      {/* Header */}
+      {/* Header with Progress */}
       <div
         className={`border-b ${
           dark ? "border-slate-800 bg-slate-900" : "border-gray-200 bg-white"
         } sticky top-0 z-40`}
       >
-        <div className="container flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-4">
+        <div className="container px-4 py-4 space-y-3">
+          <div className="flex items-center justify-between">
             <Link
               to={`/course/${course.id}`}
-              className="text-sm text-primary hover:underline"
+              className="text-sm text-primary hover:underline flex items-center gap-2"
             >
               ← {course.title}
             </Link>
-            <span className="text-muted-foreground">|</span>
-            <h1 className="font-semibold">
-              Chapter {lesson.chapter}: {lesson.title}
-            </h1>
+            <div className="flex items-center gap-3">
+              <BookmarkButton lessonId={lesson.id} />
+              <Button
+                variant={showAI ? "default" : "outline"}
+                size="sm"
+                onClick={() => (isAuthenticated ? setShowAI(!showAI) : null)}
+                disabled={!isAuthenticated}
+                className="gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Ask AI
+              </Button>
+            </div>
           </div>
-          <Button
-            variant={showAI ? "default" : "outline"}
-            size="sm"
-            onClick={() => !isAuthenticated ? null : setShowAI(!showAI)}
-            disabled={!isAuthenticated}
-            className="gap-2"
-            title={!isAuthenticated ? "Sign in to use AI Assistant" : ""}
-          >
-            <Zap className="h-4 w-4" />
-            AI Assistant
-            {!isAuthenticated && <Lock className="h-3 w-3 ml-1" />}
-          </Button>
+
+          {/* Progress bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">
+                Chapter {lesson.chapter}: {lesson.title}
+              </span>
+              <span className="font-semibold">{progressPercentage}%</span>
+            </div>
+            <Progress value={progressPercentage} className="h-2" />
+          </div>
         </div>
       </div>
 
-      <div className="container grid gap-6 px-4 py-8 lg:grid-cols-3">
+      <div className="container grid gap-6 px-4 py-8 lg:grid-cols-4">
         {/* Main Content */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className={`lg:col-span-2 space-y-6`}
+          className="lg:col-span-3 space-y-6"
         >
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="w-full justify-start">
+            <TabsList className="w-full justify-start grid w-full grid-cols-2">
               <TabsTrigger value="lesson" className="gap-2">
-                <FileText className="h-4 w-4" />
+                <Book className="h-4 w-4" />
                 Lesson
               </TabsTrigger>
               <TabsTrigger value="practice" className="gap-2">
@@ -182,64 +191,67 @@ export default function LessonPage() {
             <TabsContent value="lesson" className="space-y-6">
               {/* Content */}
               <Card>
-                <CardHeader>
-                  <CardTitle>{lesson.title}</CardTitle>
-                  <CardDescription>{lesson.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose dark:prose-invert max-w-none">
-                    <div
-                      className="space-y-4 text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={{
-                        __html: lesson.content
-                          .split("\n")
-                          .map((line) => {
-                            if (line.startsWith("#")) return `<h2>${line.replace(/#+ /, "")}</h2>`;
-                            if (line.startsWith("##")) return `<h3>${line.replace(/##+ /, "")}</h3>`;
-                            if (line.startsWith("-"))
-                              return `<li>${line.replace(/^- /, "")}</li>`;
-                            return `<p>${line}</p>`;
-                          })
-                          .join("")
-                          .replace(/<li>/g, "<ul><li>")
-                          .replace(/<\/li>(?!.*<li>)/g, "</li></ul>"),
-                      }}
-                    />
-                  </div>
+                <CardContent className="pt-6 prose dark:prose-invert max-w-none">
+                  <div
+                    className="space-y-4 text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: lesson.content
+                        .split("\n")
+                        .map((line) => {
+                          if (line.startsWith("# ")) return `<h2 class="text-2xl font-bold mt-4 mb-2">${line.slice(2)}</h2>`;
+                          if (line.startsWith("## "))
+                            return `<h3 class="text-xl font-semibold mt-3 mb-2">${line.slice(3)}</h3>`;
+                          if (line.startsWith("- "))
+                            return `<li class="ml-4">${line.slice(2)}</li>`;
+                          if (line.trim() === "") return `<br />`;
+                          return `<p>${line}</p>`;
+                        })
+                        .join("")
+                        .replace(/(<li.*?<\/li>)/gs, (match) => `<ul class="list-disc space-y-1">${match}</ul>`),
+                    }}
+                  />
                 </CardContent>
               </Card>
 
               {/* Code Examples */}
               {lesson.codeExamples.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-bold">Code Examples</h2>
+                  <h3 className="font-semibold text-foreground">Code Examples</h3>
                   {lesson.codeExamples.map((example, idx) => (
                     <Card key={idx}>
-                      <CardHeader>
-                        <CardTitle className="text-base">{example.title}</CardTitle>
-                        {example.explanation && (
-                          <CardDescription>{example.explanation}</CardDescription>
-                        )}
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="pt-6 space-y-4">
+                        <div>
+                          <h4 className="font-medium mb-2">{example.title}</h4>
+                          {example.explanation && (
+                            <p className="text-sm text-muted-foreground mb-3">
+                              {example.explanation}
+                            </p>
+                          )}
+                        </div>
                         <div
-                          className={`rounded-lg border ${
-                            dark ? "border-slate-700 bg-slate-800" : "border-gray-200 bg-gray-100"
-                          } p-4 font-mono text-sm overflow-x-auto`}
+                          className={`rounded-lg border p-4 font-mono text-sm overflow-x-auto ${
+                            dark
+                              ? "border-slate-700 bg-slate-800"
+                              : "border-gray-200 bg-gray-100"
+                          }`}
                         >
-                          <pre className="text-sm">{example.code}</pre>
+                          <pre className="text-sm whitespace-pre-wrap break-words">
+                            {example.code}
+                          </pre>
                         </div>
                         {example.output && (
                           <div className="space-y-2">
-                            <div className="text-sm font-semibold">Output:</div>
+                            <div className="text-sm font-semibold">Output</div>
                             <div
-                              className={`rounded-lg border ${
+                              className={`rounded-lg border p-3 font-mono text-sm ${
                                 dark
                                   ? "border-green-900 bg-green-950 text-green-300"
                                   : "border-green-200 bg-green-50 text-green-900"
-                              } p-3 font-mono text-sm`}
+                              }`}
                             >
-                              <pre>{example.output}</pre>
+                              <pre className="whitespace-pre-wrap break-words">
+                                {example.output}
+                              </pre>
                             </div>
                           </div>
                         )}
@@ -247,6 +259,19 @@ export default function LessonPage() {
                     </Card>
                   ))}
                 </div>
+              )}
+
+              {/* Mark Complete Button */}
+              {isAuthenticated && (
+                <Button
+                  onClick={handleMarkComplete}
+                  disabled={isCompleted}
+                  className="w-full h-11 gap-2"
+                  variant={isCompleted ? "outline" : "default"}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {isCompleted ? "✓ Marked Complete" : "Mark as Complete"}
+                </Button>
               )}
             </TabsContent>
 
@@ -256,15 +281,18 @@ export default function LessonPage() {
                 <div className="space-y-4">
                   {lesson.practiceProblems.map((problem, idx) => (
                     <Card key={idx}>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{problem.title}</CardTitle>
-                        <CardDescription>{problem.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="pt-6 space-y-4">
+                        <div>
+                          <h3 className="font-semibold mb-1">{problem.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {problem.description}
+                          </p>
+                        </div>
+
                         {/* Editor */}
                         <div>
                           <label className="mb-2 block text-sm font-medium">
-                            Your Code:
+                            Your Code
                           </label>
                           <CodeEditor
                             value={code}
@@ -274,48 +302,45 @@ export default function LessonPage() {
                         </div>
 
                         {/* Controls */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Button
                             onClick={handleRun}
                             disabled={isRunning}
                             className="gap-2 flex-1"
                           >
-                            <Play className="h-4 w-4" />
-                            {isRunning ? "Running..." : "Run Code"}
+                            ▶ {isRunning ? "Running..." : "Run Code"}
                           </Button>
                           <Button
                             onClick={handleReset}
                             variant="outline"
                             className="gap-2"
                           >
-                            <RotateCcw className="h-4 w-4" />
-                            Reset
+                            ↻ Reset
                           </Button>
-                          <Button
-                            onClick={() => setShowAI(true)}
-                            variant="outline"
-                            className="gap-2"
-                          >
-                            <Zap className="h-4 w-4" />
-                            Ask AI
-                          </Button>
+                          {isAuthenticated && (
+                            <Button
+                              onClick={() => setShowAI(true)}
+                              variant="outline"
+                              className="gap-2"
+                              disabled={!isAuthenticated}
+                            >
+                              💡 Hint
+                            </Button>
+                          )}
                         </div>
 
                         {/* Output */}
                         {output && (
                           <div
                             ref={responseRef}
-                            className={`rounded-lg border ${
+                            className={`rounded-lg border p-4 ${
                               dark
                                 ? "border-slate-700 bg-slate-800"
                                 : "border-gray-200 bg-gray-100"
-                            } p-4`}
+                            }`}
                           >
-                            <div className="mb-2 text-sm font-semibold">Output:</div>
-                            <ResponsePanel
-                              response={output}
-                              loading={false}
-                            />
+                            <div className="mb-2 text-sm font-semibold">Output</div>
+                            <ResponsePanel response={output} loading={false} />
                           </div>
                         )}
                       </CardContent>
@@ -325,8 +350,8 @@ export default function LessonPage() {
               ) : (
                 <Card>
                   <CardContent className="pt-6 text-center">
-                    <Lock className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                    <p>No practice problems available yet.</p>
+                    <FileText className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                    <p>No practice problems yet.</p>
                   </CardContent>
                 </Card>
               )}
@@ -339,7 +364,7 @@ export default function LessonPage() {
               <Link to={`/lesson/${prevLesson.id}`} className="flex-1">
                 <Button variant="outline" className="w-full gap-2">
                   <ChevronLeft className="h-4 w-4" />
-                  Previous: {prevLesson.title}
+                  Previous
                 </Button>
               </Link>
             ) : (
@@ -348,7 +373,7 @@ export default function LessonPage() {
             {nextLesson ? (
               <Link to={`/lesson/${nextLesson.id}`} className="flex-1">
                 <Button className="w-full gap-2">
-                  Next: {nextLesson.title}
+                  Next
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -361,20 +386,20 @@ export default function LessonPage() {
         </motion.div>
 
         {/* AI Assistant Sidebar */}
-        {showAI && isAuthenticated && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-1"
-          >
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className={showAI && isAuthenticated ? "lg:col-span-1" : ""}
+        >
+          {showAI && isAuthenticated && (
             <AIAssistantPanel
               lesson={lesson}
               course={course}
               onClose={() => setShowAI(false)}
               currentCode={code}
             />
-          </motion.div>
-        )}
+          )}
+        </motion.div>
       </div>
     </div>
   );

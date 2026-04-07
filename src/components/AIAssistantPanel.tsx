@@ -23,24 +23,24 @@ interface Message {
 
 const QUICK_PROMPTS = [
   {
-    icon: HelpCircle,
-    label: "Explain This Lesson",
-    prompt: "Can you explain this lesson in simpler terms?",
-  },
-  {
     icon: Code,
-    label: "Debug My Code",
-    prompt: "Help me debug this code:",
+    label: "Check My Answer",
+    prompt: "Is this code correct? Just tell me yes/no and point out any issues.",
   },
   {
     icon: AlertCircle,
-    label: "I'm Stuck",
-    prompt: "I don't understand this concept. Can you help?",
+    label: "What's Wrong?",
+    prompt: "What's the error in this code? Give me the issue and the fix.",
   },
   {
     icon: Zap,
-    label: "Tips & Tricks",
-    prompt: "Give me some tips to improve my code",
+    label: "How to Fix It",
+    prompt: "How do I fix this code? Give me the corrected code.",
+  },
+  {
+    icon: HelpCircle,
+    label: "Explain Briefly",
+    prompt: "Explain this code in 2-3 sentences using simple words.",
   },
 ];
 
@@ -51,6 +51,16 @@ async function streamAIResponse(
   onDone: () => void
 ) {
   try {
+    // Add instruction for simple, direct responses
+    const simplifiedPrompt = `${prompt}
+
+IMPORTANT: Keep your response simple and direct. 
+- Be concise and use plain language
+- Avoid long explanations
+- Get straight to the point
+- Use short paragraphs and bullet points
+- For code issues: show the fix, not lengthy theory`;
+
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-code`;
     const response = await fetch(url, {
       method: "POST",
@@ -62,7 +72,7 @@ async function streamAIResponse(
         code: context,
         language: "javascript",
         action: "explain",
-        customPrompt: prompt,
+        customPrompt: simplifiedPrompt,
       }),
     });
 
@@ -182,7 +192,7 @@ export default function AIAssistantPanel({
           <div>
             <h3 className="text-sm font-bold">AI Assistant</h3>
             <p className="text-xs text-muted-foreground">
-              Ask anything about this lesson
+              Quick help with simple answers
             </p>
           </div>
         </div>
@@ -201,8 +211,7 @@ export default function AIAssistantPanel({
           <div className="h-full flex flex-col items-center justify-center">
             <Zap className="h-12 w-12 text-primary/30 mb-3" />
             <p className="text-sm text-muted-foreground text-center mb-6">
-              Hi! I'm your AI coding assistant. Ask me anything about this lesson or
-              your code!
+              Ask me to check your code or explain concepts. I'll give you quick, simple answers!
             </p>
             <div className="w-full space-y-2">
               {QUICK_PROMPTS.map((prompt) => (

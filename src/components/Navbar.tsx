@@ -19,11 +19,9 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
 
-  const links = [
+  const guestLinks = [
     { to: "/", icon: Home, label: "Home" },
     { to: "/courses", icon: BookOpen, label: "Learn" },
-    { to: "/dashboard", icon: Code2, label: "Dashboard" },
-    { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
   ];
 
   const authenticatedLinks = [
@@ -33,7 +31,7 @@ export default function Navbar() {
     { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
   ];
 
-  const activeLinks = isAuthenticated ? authenticatedLinks : links;
+  const activeLinks = isAuthenticated ? authenticatedLinks : guestLinks;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">

@@ -6,11 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: "admin" | "instructor" | "student";
+  allowGuest?: boolean;
 }
 
 export default function ProtectedRoute({
   children,
   requiredRole,
+  allowGuest = false,
 }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -23,11 +25,11 @@ export default function ProtectedRoute({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !allowGuest) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
+  if (isAuthenticated && requiredRole && user?.role !== requiredRole) {
     return <Navigate to="/dashboard" replace />;
   }
 

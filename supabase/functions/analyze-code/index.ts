@@ -9,6 +9,7 @@ const systemPrompts: Record<string, string> = {
   explain: "You are a friendly coding tutor for students. Explain the following code in simple, easy-to-understand terms. Break it down step by step. Use markdown formatting with headers, bullet points, and code blocks where helpful.",
   fix: "You are a helpful debugging assistant for students. Analyze the following code, identify any bugs or errors, explain what's wrong in simple terms, and provide the corrected code. Use markdown formatting.",
   optimize: "You are a code optimization expert helping students. Review the following code and suggest improvements for performance, readability, and best practices. Show the optimized version. Use markdown formatting.",
+  run: "Analyze this code and provide ONLY the output/result that this code produces. Simply explain what this code does and what it outputs. Keep it brief and concise.",
 };
 
 serve(async (req) => {

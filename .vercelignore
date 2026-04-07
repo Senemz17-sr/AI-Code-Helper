@@ -1,0 +1,32 @@
+# Dependencies
+node_modules
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Playwright tests
+playwright-fixture.ts
+playwright.config.ts
+
+# Documentation
+DEPLOYMENT_GUIDE.md
+QUICK_START.md
+README.md
+LEARNING_PLATFORM_GUIDE.md
+PHASE_2_IMPLEMENTATION_GUIDE.md
+PHASE_2_COMPLETE.md
+SUPABASE_SETUP.md
+IMPLEMENTATION_SUMMARY.md
+FEATURES_CHECKLIST.md
+FEATURES_CHECKLIST_V2.md
+
+# Local files
+.env.local
+.env.*.local
+
+# Misc
+.DS_Store
+*.pem

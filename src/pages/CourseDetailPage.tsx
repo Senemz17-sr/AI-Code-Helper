@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Circle, BookOpen, ArrowRight } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import GuestBanner from "@/components/GuestBanner";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Level } from "@/types/course";
 
 const LEVEL_COLORS: Record<Level, string> = {
@@ -18,6 +20,7 @@ export default function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const course = courseId ? getCourseById(courseId) : undefined;
   const lessons = courseId ? getLessonsByCourse(courseId) : [];
+  const { isAuthenticated } = useAuth();
 
   if (!course) {
     return <Navigate to="/courses" replace />;
@@ -30,6 +33,9 @@ export default function CourseDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="container px-4 py-12">
+        {/* Guest Banner */}
+        {!isAuthenticated && <GuestBanner />}
+
         {/* Navigation */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}

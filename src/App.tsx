@@ -6,12 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Home from "@/pages/Home";
-import Dashboard from "@/pages/Dashboard";
+import DashboardV2 from "@/pages/DashboardV2";
 import HistoryPage from "@/pages/HistoryPage";
-import CoursesPage from "@/pages/CoursesPage";
-import CourseDetailPage from "@/pages/CourseDetailPage";
-import LessonPage from "@/pages/LessonPage";
+import CoursesPageV2 from "@/pages/CoursesPageV2";
+import CourseDetailPageV2 from "@/pages/CourseDetailPageV2";
+import LessonPageV2 from "@/pages/LessonPageV2";
 import AuthPage from "@/pages/AuthPage";
 import UserProfilePage from "@/pages/UserProfilePage";
 import LeaderboardPage from "@/pages/LeaderboardPage";
@@ -23,18 +24,19 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Navbar />
-          <Routes>
+        <SubscriptionProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Navbar />
+            <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <DashboardV2 />
                 </ProtectedRoute>
               }
             />
@@ -49,24 +51,24 @@ const App = () => (
             <Route
               path="/courses"
               element={
-                <ProtectedRoute>
-                  <CoursesPage />
+                <ProtectedRoute allowGuest>
+                  <CoursesPageV2 />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/course/:courseId"
               element={
-                <ProtectedRoute>
-                  <CourseDetailPage />
+                <ProtectedRoute allowGuest>
+                  <CourseDetailPageV2 />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/lesson/:lessonId"
               element={
-                <ProtectedRoute>
-                  <LessonPage />
+                <ProtectedRoute allowGuest>
+                  <LessonPageV2 />
                 </ProtectedRoute>
               }
             />
@@ -89,6 +91,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </SubscriptionProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
