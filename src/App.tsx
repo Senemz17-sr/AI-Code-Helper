@@ -16,6 +16,7 @@ import CoursesPageV2 from "@/pages/CoursesPageV2";
 import CourseDetailPageV2 from "@/pages/CourseDetailPageV2";
 import LessonPageV2 from "@/pages/LessonPageV2";
 import AuthPage from "@/pages/AuthPage";
+import SignInPage from "@/pages/SignIn";
 import UserProfilePage from "@/pages/UserProfilePage";
 import LeaderboardPage from "@/pages/LeaderboardPage";
 import NotFound from "@/pages/NotFound";
@@ -52,7 +53,7 @@ const App = () => (
                 {/* Auth */}
                 <Route path="/auth" element={<AuthPage />} />
                 
-                {/* AI Code Helper */}
+                {/* AI Code Helper - Protected */}
                 <Route
                   path="/helper"
                   element={
@@ -61,6 +62,8 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                {/* Sign In page */}
+                <Route path="/signin" element={<SignInPage />} />
                 
                 {/* Legacy Routes */}
                 <Route

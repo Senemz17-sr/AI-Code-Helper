@@ -20,6 +20,9 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import GuestModeBanner from "@/components/GuestModeBanner";
+import { guestHistoryManager } from "@/lib/guestHistory";
 import CodeEditor from "@/components/CodeEditor";
 
 type AIMode = "generate" | "debug" | "explain" | "optimize" | "refactor";
@@ -200,6 +203,7 @@ function ConversationItem({
 }
 
 export default function AIHelperPage() {
+  const { isAuthenticated, user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([
     {
       id: "1",
@@ -220,6 +224,34 @@ export default function AIHelperPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const currentConversation = conversations.find((c) => c.id === currentConversationId);
+
+  // Load guest history if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const guestConvs = guestHistoryManager.getConversations();
+      if (guestConvs.length > 0) {
+        // Convert guest conversations to Chat format for display
+        const convertedConvs: Conversation[] = guestConvs.map((gc) => ({
+          id: gc.id,
+          title: gc.title,
+          messages: gc.items.map((item) => ({
+            id: item.id,
+            role: "user" as const,
+            content: item.prompt,
+            code: item.code,
+            language: item.language as Language,
+            timestamp: new Date(item.timestamp),
+          })),
+          createdAt: new Date(gc.createdAt),
+          updatedAt: new Date(gc.updatedAt),
+        }));
+        setConversations(convertedConvs);
+        if (convertedConvs.length > 0) {
+          setCurrentConversationId(convertedConvs[0].id);
+        }
+      }
+    }
+  }, [isAuthenticated]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -253,6 +285,8 @@ export default function AIHelperPage() {
       )
     );
 
+    const userPromptText = prompt;
+    const userCode = code;
     setPrompt("");
     setIsLoading(true);
 
@@ -260,7 +294,7 @@ export default function AIHelperPage() {
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: generateMockResponse(mode, prompt, code),
+        content: generateMockResponse(mode, userPromptText, userCode),
         code: generateMockCode(mode, language),
         language,
         timestamp: new Date(),
@@ -270,10 +304,30 @@ export default function AIHelperPage() {
       setConversations((prev) =>
         prev.map((c) =>
           c.id === currentConversationId
-            ? { ...c, messages: [...c.messages, aiResponse], updatedAt: new Date() }
+            ? { 
+                ...c, 
+                messages: [...c.messages, aiResponse], 
+                updatedAt: new Date() 
+              }
             : c
         )
       );
+
+      // Save to guest history if not authenticated  
+      if (!isAuthenticated) {
+        try {
+          guestHistoryManager.addItem(
+            currentConversationId,
+            mode,
+            userPromptText,
+            aiResponse.content,
+            aiResponse.code,
+            language
+          );
+        } catch (error) {
+          console.error("Failed to save to guest history:", error);
+        }
+      }
 
       // Remove typing animation after completion
       setTimeout(() => {
@@ -377,16 +431,20 @@ export default function AIHelperPage() {
 
   const createNewChat = () => {
     const newId = Date.now().toString();
-    setConversations((prev) => [
-      ...prev,
-      {
-        id: newId,
-        title: "New Chat",
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]);
+    const newChat = {
+      id: newId,
+      title: "New Chat",
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Save to guest history if not authenticated
+    if (!isAuthenticated) {
+      guestHistoryManager.createConversation("New Chat");
+    }
+
+    setConversations((prev) => [newChat, ...prev]);
     setCurrentConversationId(newId);
     setCode("");
     setPrompt("");
@@ -394,6 +452,12 @@ export default function AIHelperPage() {
 
   const deleteConversation = (id: string) => {
     setConversations((prev) => prev.filter((c) => c.id !== id));
+
+    // Delete from guest history if not authenticated
+    if (!isAuthenticated) {
+      guestHistoryManager.deleteConversation(id);
+    }
+
     if (currentConversationId === id && conversations.length > 1) {
       const remaining = conversations.filter((c) => c.id !== id);
       setCurrentConversationId(remaining[0].id);
@@ -507,6 +571,13 @@ export default function AIHelperPage() {
         <div className="flex-1 overflow-hidden flex gap-4 p-6">
           {/* Left: Chat Messages */}
           <div className="flex-1 flex flex-col bg-gray-800/20 backdrop-blur-sm rounded-2xl border border-gray-800/50 overflow-hidden shadow-xl">
+            {/* Guest Mode Banner */}
+            {!isAuthenticated && (
+              <div className="px-6 pt-6">
+                <GuestModeBanner />
+              </div>
+            )}
+
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin">
               {currentConversation && currentConversation.messages.length === 0 ? (

@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveAIHistory, getAIHistory } from "@/lib/api/ai";
 import type {
   Conversation,
   ChatMessage,
@@ -8,6 +10,7 @@ import type {
   CodeFile,
   AIConfig,
 } from "@/types/ai";
+// import { debounce } from "lodash";
 
 interface AIContextType {
   // Conversations
@@ -45,6 +48,7 @@ interface AIContextType {
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
 export function AIProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -56,10 +60,58 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
     (c) => c.id === currentConversationId
   ) || null;
 
+  // Persistence
+  const isGuest = !isAuthenticated;
+  const STORAGE_KEY = "ai_conversations_guest";
+
+  const loadConversations = useCallback(async () => {
+    try {
+      if (isGuest) {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as Conversation[];
+          setConversations(parsed);
+        }
+      } else if (user) {
+        const history = await getAIHistory();
+        setConversations(history);
+      }
+    } catch (e) {
+      console.error("Load conversations error:", e);
+    }
+  }, [isGuest, user]);
+
+  const saveConversations = useCallback(async () => {
+    try {
+      if (isGuest) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+      } else if (user) {
+        await saveAIHistory(conversations);
+      }
+    } catch (e) {
+      console.error("Save conversations error:", e);
+    }
+  }, [conversations, isGuest, user]);
+
+  const debouncedSave = useCallback(() => {
+    const timeout = setTimeout(saveConversations, 1000);
+    return () => clearTimeout(timeout);
+  }, [saveConversations]);
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  useEffect(() => {
+    if (conversations.length > 0) {
+      debouncedSave();
+    }
+  }, [conversations, debouncedSave]);
+
   const createConversation = useCallback(
     (language: Language, title?: string) => {
       const newConversation: Conversation = {
-        id: Date.now().toString(),
+        id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         title: title || `New Chat - ${language}`,
         messages: [],
         language,
@@ -68,13 +120,13 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
         tags: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-        userId: "current-user", // Replace with actual user ID
+        userId: user?.id || "guest",
       };
 
       setConversations((prev) => [newConversation, ...prev]);
       setCurrentConversationId(newConversation.id);
     },
-    []
+    [user?.id]
   );
 
   const setCurrentConversation = useCallback((id: string) => {

@@ -1,13 +1,26 @@
 import { useState, useCallback } from "react";
 import { useAI } from "@/contexts/AIContext";
+import OpenAIService from "@/services/ai/openaiService";
 import type { AIMode, Language, AIResponse } from "@/types/ai";
 
 /**
  * useAIHelper - Hook for AI operations
  */
 export function useAIHelper() {
-  const { addMessage, updateLastMessage, setIsLoading, setError } = useAI();
+  const { aiConfig, setIsLoading, setError } = useAI();
   const [response, setResponse] = useState<AIResponse | null>(null);
+  const [openaiService, setOpenaiService] = useState<any>(null);
+
+  useEffect(() => {
+    if (aiConfig?.apiKey) {
+      const service = OpenAIService.initializeOpenAI(aiConfig.apiKey, {
+        model: aiConfig.model || "gpt-3.5-turbo",
+        temperature: aiConfig.temperature || 0.7,
+        maxTokens: aiConfig.maxTokens || 2048,
+      });
+      setOpenaiService(service);
+    }
+  }, [aiConfig]);
 
   const generateCode = useCallback(
     async (prompt: string, language: Language, context?: string) => {
@@ -35,17 +48,13 @@ export function useAIHelper() {
 
   const debugCode = useCallback(
     async (code: string, language: Language, description?: string) => {
+      if (!openaiService) throw new Error("OpenAI service not initialized. Add your API key.");
       setIsLoading(true);
       setError(null);
       try {
-        // TODO: Replace with actual API call
-        const mockResponse: AIResponse = {
-          id: Date.now().toString(),
-          code: code,
-          explanation: "No bugs found in this code.",
-        };
-        setResponse(mockResponse);
-        return mockResponse;
+        const result = await openaiService.debugCode(code, language, description);
+        setResponse(result);
+        return result;
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Debug failed";
         setError(errorMsg);
@@ -54,7 +63,7 @@ export function useAIHelper() {
         setIsLoading(false);
       }
     },
-    [setIsLoading, setError]
+    [openaiService, setIsLoading, setError]
   );
 
   const explainCode = useCallback(
