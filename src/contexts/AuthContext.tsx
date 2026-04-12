@@ -11,6 +11,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, username: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithGitHub: () => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateProfile: (updates: Record<string, any>) => Promise<void>;
@@ -203,6 +205,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth`,
+        },
+      });
+      if (error) throw new Error(error.message);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithGitHub = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "github",
+        options: {
+          redirectTo: `${window.location.origin}/auth`,
+        },
+      });
+      if (error) throw new Error(error.message);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
@@ -241,6 +277,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user && !!session,
         login,
         signup,
+        signInWithGoogle,
+        signInWithGitHub,
         logout,
         resetPassword,
         updateProfile,

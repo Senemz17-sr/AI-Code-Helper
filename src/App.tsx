@@ -8,7 +8,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AIProvider } from "@/contexts/AIContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import Home from "@/pages/Home";
 import PremiumLandingPage from "@/pages/PremiumLandingPage";
 import AIHelperPage from "@/pages/AIHelperPage";
 import DashboardV2 from "@/pages/DashboardV2";
@@ -64,7 +63,6 @@ const App = () => (
                 />
                 
                 {/* Legacy Routes */}
-                <Route path="/home" element={<Home />} />
                 <Route
                   path="/dashboard"
                   element={
